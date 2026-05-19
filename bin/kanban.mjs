@@ -7,6 +7,7 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import readline from "node:readline/promises";
+import { spawn } from "node:child_process";
 import { stdin as input, stdout as output } from "node:process";
 
 const BASE = process.env.KANBAN_URL || "http://localhost:3000";
@@ -48,7 +49,7 @@ async function api(method, path, body) {
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
-    die(`Não foi possível conectar a ${BASE}. O servidor está rodando? (npm run dev)`);
+    die(`Não foi possível conectar a ${BASE}. Rode: kanban start`);
   }
   const text = await res.text();
   let data;
@@ -129,6 +130,13 @@ Comment:
   kanban comment create <taskId> "<texto>" [author]
   kanban comment delete <commentId>
 
+Running:
+  kanban start [--no-open]   Start the app (if not already running) and open
+                             it in the browser. Idempotent — safe to call
+                             again; usable by a human or an AI agent.
+  kanban status [--json]     Is the server up? (exit 0 = up, 1 = down)
+  kanban stop                Stop a server started by kanban start.
+
 Setup:
   kanban init [--yes] [--scope local|global|both] [--method symlink|copy] [--force] [--all]
               Wire an AI agent (Claude Code, Codex, …) to use the board:
@@ -203,12 +211,14 @@ The user runs **Agent Board**, a local Kanban for delegating tasks to AI agents.
 | Move a card forward | \`kanban task move <taskId> <columnId>\` |
 | Report progress / answer | \`kanban comment create <taskId> "..." agent\` |
 | Track steps | \`kanban subtask create <taskId> "..."\` · \`kanban subtask toggle <id>\` |
+| Start the app | \`kanban start --no-open\` (idempotent) · \`kanban status\` |
 | Full help | \`kanban --help\` |
 
 ## Hard rules
 
+- Begin a board session with \`kanban start --no-open\` (idempotent; no-op if already up).
 - Never read/write \`~/.agent-kanban/data.db\` directly — the CLI/API is the only writer.
-- Never start, restart, or kill the dev server unless explicitly asked. If the API is unreachable, tell the user to run \`npm run dev\` in \`~/.agent-kanban-app\`.
+- Starting via \`kanban start\` is allowed; never manually run \`npm run dev\`, kill, or restart Node processes. If \`kanban start\` can't bring it up, surface \`~/.agent-kanban/dev.log\` and stop.
 - Communicate through comments with author \`agent\` so the human sees status on the board.
 - Move cards to reflect reality; refer to tasks by their \`{PREFIX}-NNN\` id.
 ${MARK_END}
@@ -225,8 +235,8 @@ ${MARK_START}
 The user runs Agent Board (local Kanban). Delegated tasks come through the board; operate it with the \`kanban\` CLI (HTTP API at http://localhost:3000), never by editing \`~/.agent-kanban/data.db\`.
 
 - Load the skill at \`${def.skillsDir}/agent-kanban/SKILL.md\` when board work is requested.
-- Find work: \`kanban task list --json\`. Move: \`kanban task move <taskId> <columnId>\`. Report: \`kanban comment create <taskId> "..." agent\`.
-- Never start/stop the dev server unasked; if unreachable, tell the user to run \`npm run dev\` in \`~/.agent-kanban-app\`.
+- Start (idempotent): \`kanban start --no-open\`. Find work: \`kanban task list --json\`. Move: \`kanban task move <taskId> <columnId>\`. Report: \`kanban comment create <taskId> "..." agent\`.
+- \`kanban start\` is the only allowed way to bring it up; never run \`npm run dev\`/kill processes. If it won't start, surface \`~/.agent-kanban/dev.log\`.
 ${MARK_END}
 `;
 }
@@ -375,9 +385,123 @@ async function runInit() {
 
   console.log("");
   console.log("  Pronto. O agente agora sabe usar o quadro via `kanban`.");
-  console.log("  Garanta que o app esteja rodando:  cd ~/.agent-kanban-app && npm run dev");
+  console.log("  Inicie o app a qualquer momento:  kanban start");
   console.log("");
   return 0;
+}
+
+// ── server lifecycle: transparent start/stop/status ──────────────────────
+const DATA_DIR = path.join(HOME, ".agent-kanban");
+const PID_FILE = path.join(DATA_DIR, "server.pid");
+const LOG_FILE = path.join(DATA_DIR, "dev.log");
+
+function appDir() {
+  if (process.env.KANBAN_APP_DIR) return process.env.KANBAN_APP_DIR;
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const root = path.join(here, "..");
+  if (fs.existsSync(path.join(root, "package.json"))) return root;
+  const installed = path.join(HOME, ".agent-kanban-app");
+  if (fs.existsSync(path.join(installed, "package.json"))) return installed;
+  return root;
+}
+
+async function serverUp(timeoutMs = 1500) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    await fetch(BASE + "/api/board", { signal: ctrl.signal });
+    return true; // any HTTP response means the server is listening
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+function openBrowser(url) {
+  const cmd =
+    process.platform === "darwin" ? "open" :
+    process.platform === "win32" ? "cmd" : "xdg-open";
+  const args = process.platform === "win32" ? ["/c", "start", "", url] : [url];
+  try {
+    spawn(cmd, args, { detached: true, stdio: "ignore" }).unref();
+  } catch {
+    /* headless / no browser — ignore */
+  }
+}
+
+function readPid() {
+  try {
+    const p = parseInt(fs.readFileSync(PID_FILE, "utf8").trim(), 10);
+    return Number.isFinite(p) ? p : null;
+  } catch {
+    return null;
+  }
+}
+
+async function cmdStart() {
+  const url = BASE;
+  if (await serverUp()) {
+    msg(`Agent Board já está rodando em ${url}`);
+    if (!opts["no-open"]) openBrowser(url);
+    return 0;
+  }
+
+  const dir = appDir();
+  if (!fs.existsSync(path.join(dir, "package.json"))) {
+    return die(`App não encontrado em ${dir}. Rode o install.sh ou defina KANBAN_APP_DIR.`, 1), 1;
+  }
+
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const out = fs.openSync(LOG_FILE, "a");
+  const child = spawn("npm", ["run", "dev"], {
+    cwd: dir,
+    detached: true,
+    stdio: ["ignore", out, out],
+    env: process.env,
+  });
+  child.unref();
+  fs.writeFileSync(PID_FILE, String(child.pid));
+
+  if (!flags.quiet) process.stderr.write(`  iniciando servidor (${dir}) …`);
+  const deadline = Date.now() + 45000;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 600));
+    if (await serverUp(1000)) {
+      if (!flags.quiet) process.stderr.write(" ok\n");
+      msg(`Agent Board rodando em ${url}  (log: ${LOG_FILE})`);
+      if (!opts["no-open"]) openBrowser(url);
+      return 0;
+    }
+  }
+  if (!flags.quiet) process.stderr.write(" timeout\n");
+  return die(`Servidor não respondeu a tempo. Veja o log: ${LOG_FILE}`, 1), 1;
+}
+
+function cmdStop() {
+  const pid = readPid();
+  if (pid == null) {
+    msg("Nenhum PID registrado (servidor não foi iniciado via `kanban start`).");
+    return 0;
+  }
+  let killed = false;
+  try { process.kill(-pid, "SIGTERM"); killed = true; } catch {}
+  if (!killed) { try { process.kill(pid, "SIGTERM"); killed = true; } catch {} }
+  try { fs.rmSync(PID_FILE); } catch {}
+  msg(killed ? `Servidor parado (pid ${pid}).` : `Não foi possível parar pid ${pid} (já encerrado?).`);
+  return 0;
+}
+
+async function cmdStatus() {
+  const up = await serverUp();
+  const pid = readPid();
+  if (flags.json) {
+    out({ running: up, url: BASE, pid: pid ?? null });
+    return up ? 0 : 1;
+  }
+  if (up) msg(`● rodando — ${BASE}${pid ? `  (pid ${pid})` : ""}`);
+  else msg(`○ parado — ${BASE}`);
+  return up ? 0 : 1;
 }
 
 async function main() {
@@ -386,6 +510,9 @@ async function main() {
   if (resource === "init" && !flags.help) {
     process.exit(await runInit());
   }
+  if (resource === "start" && !flags.help) process.exit(await cmdStart());
+  if (resource === "stop" && !flags.help) process.exit(cmdStop());
+  if (resource === "status" && !flags.help) process.exit(await cmdStatus());
 
   if (flags.help || !resource) {
     if (!flags.quiet) console.log(HELP);

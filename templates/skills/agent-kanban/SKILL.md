@@ -7,15 +7,23 @@ description: Use this skill when the user asks you to work from the Agent Board 
 
 The user runs **Agent Board** — a local Kanban for delegating tasks to AI agents. Tasks live in columns; you receive work, execute it, report progress through comments, and move the card across the workflow. The `kanban` CLI is the only interface — it talks to the running app's HTTP API. The UI updates in real time as you act.
 
-## Prerequisite (human action, one-time)
+## Prerequisite — start the app (you may do this)
 
-The Agent Board app must be running for the CLI to work:
+The Agent Board app must be running for the CLI to work. Starting it is a
+first-class, idempotent command — **you may run it yourself**:
 
 ```bash
-cd ~/.agent-kanban-app && npm run dev   # serves http://localhost:3000
+kanban start --no-open     # starts the server if down; safe to call repeatedly
+kanban status              # exit 0 = up, 1 = down
 ```
 
-If a `kanban` command prints `Não foi possível conectar` / connection refused, **do not try to fix it yourself** — tell the user to start the app (command above) and continue once it is up. You only run `kanban` commands; you never edit the database or start servers unasked.
+`kanban start` launches the server detached and returns; `--no-open` skips the
+browser (use it — you don't need the UI). If `kanban status` is already up,
+`start` is a no-op. Begin any board session with `kanban start --no-open`.
+
+If `start` times out or `status` stays down after that, surface the problem and
+the log path (`~/.agent-kanban/dev.log`) to the user — **do not** kill/restart
+processes or edit the database to "fix" it.
 
 ## IDs
 
@@ -66,7 +74,7 @@ Always pass `agent` as the comment author so the board shows it came from you (t
 ## Hard rules
 
 - **Never touch `~/.agent-kanban/data.db` directly** (no sqlite, no file edits). The CLI/API is the only writer — direct writes corrupt ordering and skip real-time events.
-- **Never start, restart, or kill the dev server unless the user explicitly asks.** If the API is unreachable, surface it; don't "fix" it.
+- **Starting is allowed via `kanban start` only** (idempotent, supported). Never manually `npm run dev`, kill, or restart Node processes to "fix" connectivity — if `kanban start` doesn't bring it up, surface the log and stop.
 - **Communicate through comments, author `agent`.** The board is the shared surface — don't silently do work; narrate via comments so the human can follow and reply.
 - **Move cards to reflect reality.** A task you're working on belongs in the active column; a finished one goes to Review/Done. Don't leave stale state.
 - **Use ids verbatim.** Refer to tasks/columns by their `{PREFIX}-NNN` id when talking to the user.
@@ -88,6 +96,7 @@ kanban subtask toggle PROJ-0xx
 kanban comment create PROJ-011 "Concluído: OAuth implementado, testes passando. Detalhes no PR." agent
 kanban task move PROJ-011 <reviewColumnId>
 
-# Health: is the board reachable?
-kanban board list
+# Start of session: ensure the app is up (idempotent), then check health
+kanban start --no-open
+kanban status            # exit 0 = up
 ```

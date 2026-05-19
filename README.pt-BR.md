@@ -50,9 +50,19 @@ npm run dev             # http://localhost:3000
 
 ## Execução
 
+Forma transparente — sobe o servidor (se estiver parado) e abre o navegador. Idempotente; funciona para um humano **ou** um agente de IA:
+
 ```bash
-npm run dev
-# abra http://localhost:3000
+kanban start            # sobe + abre http://localhost:3000
+kanban start --no-open  # sobe sem abrir navegador (agentes)
+kanban status           # exit 0 = no ar, 1 = parado
+kanban stop             # para um servidor iniciado pelo kanban start
+```
+
+Ou rode o dev server diretamente:
+
+```bash
+npm run dev   # http://localhost:3000
 ```
 
 - **/** — launcher / visão geral
@@ -172,5 +182,5 @@ Por decisão explícita, **não** incluído: UI multi-board (a camada de dados s
 ## Solução de problemas
 
 - **`kanban` não encontrado** — adicione o bin global do npm ao PATH: `export PATH="$(npm config get prefix)/bin:$PATH"`.
-- **CLI não conecta** — rode `npm run dev` (ou defina `KANBAN_URL`).
+- **CLI não conecta** — rode `kanban start` (ou `npm run dev`; ou defina `KANBAN_URL`).
 - **Resetar dados** — `npm run db:seed` (re-popula, sobrescrevendo). Reset completo: `npm run db:reset`.

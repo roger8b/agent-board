@@ -54,8 +54,11 @@ install.sh             local-first installer
 
 ## Scripts
 
+`kanban start` is the transparent run path (idempotent: starts the server detached + opens the browser; `--no-open` for agents; `kanban status`/`kanban stop` manage it). `npm run dev` remains the direct dev path.
+
 ```bash
-npm run dev          # next dev (http://localhost:3000)
+kanban start         # transparent: start (if down) + open browser
+npm run dev          # next dev (http://localhost:3000) — direct
 npm run db:generate  # prisma generate → src/generated/prisma
 npm run db:push      # sync schema to ~/.agent-kanban/data.db
 npm run db:seed      # tsx prisma/seed.ts  (OVERWRITES data)
