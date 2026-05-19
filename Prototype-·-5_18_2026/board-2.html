@@ -1,0 +1,1280 @@
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quadro — Agent Board</title>
+<style>
+:root {
+  --bg:      #F7F6F3;
+  --surface: #FFFFFF;
+  --fg:      #37352F;
+  --muted:   #9B9A97;
+  --border:  #E9E9E7;
+  --accent:  #2383E2;
+  --accent-soft: #E9F0FB;
+  --danger:  #DC2626;
+  --success: #17A34A;
+  --warn:    #EAB308;
+
+  --col-backlog:    #9B9A97;
+  --col-refinement: #2383E2;
+  --col-development:#7C3AED;
+  --col-review:     #D97706;
+  --col-done:      #17A34A;
+
+  --font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-body:    -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono:    ui-monospace, 'JetBrains Mono', monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--fg);
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Sidebar ─────────────────────────────── */
+.sidebar {
+  width: 220px;
+  min-height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 20;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-logo span {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 450;
+  transition: background 0.12s, color 0.12s;
+}
+
+.nav-item:hover { background: var(--bg); color: var(--fg); }
+.nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+
+.sidebar-footer {
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-footer p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ── Board layout ────────────────────────── */
+.board-wrap {
+  margin-left: 220px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.board-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.board-topbar h1 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: opacity 0.12s;
+}
+
+.btn-primary:hover { opacity: 0.88; }
+
+.btn-ghost {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 450;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.12s, color 0.12s;
+}
+
+.btn-ghost:hover { background: var(--surface); color: var(--fg); }
+
+/* ── Kanban columns ──────────────────────── */
+.board-columns {
+  display: flex;
+  gap: 12px;
+  padding: 20px 24px 24px;
+  overflow-x: auto;
+  flex: 1;
+  align-items: flex-start;
+}
+
+.board-columns::-webkit-scrollbar { height: 6px; }
+.board-columns::-webkit-scrollbar-track { background: transparent; }
+.board-columns::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.column {
+  flex: 0 0 280px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom: none;
+}
+
+.col-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.column-header h2 {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.col-count {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.column-body {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  border-top: none;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 80px;
+  transition: background 0.15s;
+}
+
+.column-body.drag-over {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.column-body:empty::before {
+  content: 'Arraste cards aqui';
+  display: block;
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--border);
+}
+
+/* ── Cards ──────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  cursor: grab;
+  transition: box-shadow 0.15s, transform 0.12s, border-color 0.12s;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+
+.card:active { cursor: grabbing; }
+
+.card:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: #d5d5d3;
+  transform: translateY(-1px);
+}
+
+.card.dragging {
+  opacity: 0.5;
+  transform: rotate(2deg) scale(1.02);
+  box-shadow: var(--shadow-lg);
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-title {
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--fg);
+  line-height: 1.4;
+  flex: 1;
+  word-break: break-word;
+}
+
+.card-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.agent-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px 3px 6px;
+}
+
+.agent-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--col-refinement);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 600;
+  color: white;
+}
+
+.subtasks-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.subtasks-indicator svg { flex-shrink: 0; }
+
+/* ── Card Detail Slide-over ──────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.25);
+  z-index: 30;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.overlay.open { opacity: 1; pointer-events: all; }
+
+.detail-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 480px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  z-index: 40;
+  transform: translateX(100%);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.detail-panel.open { transform: translateX(0); }
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.panel-header h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.panel-close {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: background 0.12s;
+}
+
+.panel-close:hover { background: var(--bg); color: var(--fg); }
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel-body::-webkit-scrollbar { width: 5px; }
+.panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.field-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.panel-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--font-body);
+  color: var(--fg);
+  transition: border-color 0.12s;
+  resize: none;
+}
+
+.panel-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.panel-select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13.5px;
+  font-family: var(--font-body);
+  color: var(--fg);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239B9A97' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+}
+
+.panel-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.card-title-input {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+/* ── Comments ───────────────────────────── */
+.comments-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.comment-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.comment-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  flex-shrink: 0;
+}
+
+.comment-avatar.agent { background: var(--col-development); }
+
+.comment-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.comment-author {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.comment-time {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.comment-text {
+  font-size: 13px;
+  color: var(--fg);
+  line-height: 1.5;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+
+.comment-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.comment-input-row textarea {
+  flex: 1;
+  min-height: 36px;
+  max-height: 120px;
+  resize: none;
+}
+
+.comment-send {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.12s;
+}
+
+.comment-send:hover { opacity: 0.8; }
+
+/* ── Add Card inline ─────────────────────── */
+.add-card-btn {
+  width: 100%;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.12s, color 0.12s;
+}
+
+.add-card-btn:hover {
+  background: var(--surface);
+  color: var(--fg);
+  border-color: #d5d5d3;
+}
+
+.inline-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inline-add-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  color: var(--fg);
+  resize: none;
+}
+
+.inline-add-input:focus {
+  outline: none;
+}
+
+.inline-add-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-add-confirm {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.btn-add-cancel {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+/* ── Delete card btn ─────────────────────── */
+.card-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: background 0.12s, color 0.12s;
+}
+
+.card:hover .card-delete { color: var(--muted); }
+.card-delete:hover { background: #FEE2E2; color: var(--danger); }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="6" fill="#2383E2"/>
+      <path d="M7 8h4v8H7zM13 8h4v4h-4z" fill="white"/>
+      <path d="M13 14h4v2h-4z" fill="white" opacity="0.6"/>
+    </svg>
+    <span>Agent Board</span>
+  </div>
+  <div class="sidebar-nav">
+    <a href="index.html" class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+      </svg>
+      Início
+    </a>
+    <a href="board.html" class="nav-item active">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="5" height="18" rx="1"/>
+        <rect x="10" y="3" width="5" height="12" rx="1"/>
+        <rect x="17" y="3" width="5" height="15" rx="1"/>
+      </svg>
+      Quadro
+    </a>
+    <a href="agents.html" class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="9" cy="8" r="4"/><path d="M3 20c0-3.3 2.7-6 6-6"/>
+        <circle cx="17" cy="7" r="3"/><path d="M15 14c.8 1.8 2.5 3 4.5 3"/>
+      </svg>
+      Agentes
+    </a>
+    <a href="settings.html" class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41"/>
+      </svg>
+      Configurações
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <p>Agent Board v1.0<br>Dados armazenados localmente</p>
+  </div>
+</nav>
+
+<!-- Board -->
+<div class="board-wrap">
+  <div class="board-topbar">
+    <h1>Quadro Kanban</h1>
+    <div class="topbar-actions">
+      <button class="btn-ghost" onclick="openAddCard()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Novo Card
+      </button>
+    </div>
+  </div>
+
+  <div class="board-columns" id="board">
+
+    <!-- Backlog -->
+    <div class="column" data-col="backlog">
+      <div class="column-header">
+        <h2>
+          <span class="col-dot" style="background:var(--col-backlog)"></span>
+          Backlog
+        </h2>
+        <span class="col-count" id="count-backlog">0</span>
+      </div>
+      <div class="column-body" id="col-backlog" data-col="backlog"
+           ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave(event)">
+      </div>
+      <button class="add-card-btn" onclick="showAddForm('backlog')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Adicionar card
+      </button>
+    </div>
+
+    <!-- Refinement -->
+    <div class="column" data-col="refinement">
+      <div class="column-header">
+        <h2>
+          <span class="col-dot" style="background:var(--col-refinement)"></span>
+          Refinement
+        </h2>
+        <span class="col-count" id="count-refinement">0</span>
+      </div>
+      <div class="column-body" id="col-refinement" data-col="refinement"
+           ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave(event)">
+      </div>
+      <button class="add-card-btn" onclick="showAddForm('refinement')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Adicionar card
+      </button>
+    </div>
+
+    <!-- Development -->
+    <div class="column" data-col="development">
+      <div class="column-header">
+        <h2>
+          <span class="col-dot" style="background:var(--col-development)"></span>
+          Development
+        </h2>
+        <span class="col-count" id="count-development">0</span>
+      </div>
+      <div class="column-body" id="col-development" data-col="development"
+           ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave(event)">
+      </div>
+      <button class="add-card-btn" onclick="showAddForm('development')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Adicionar card
+      </button>
+    </div>
+
+    <!-- Review -->
+    <div class="column" data-col="review">
+      <div class="column-header">
+        <h2>
+          <span class="col-dot" style="background:var(--col-review)"></span>
+          Review
+        </h2>
+        <span class="col-count" id="count-review">0</span>
+      </div>
+      <div class="column-body" id="col-review" data-col="review"
+           ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave(event)">
+      </div>
+      <button class="add-card-btn" onclick="showAddForm('review')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Adicionar card
+      </button>
+    </div>
+
+    <!-- Done -->
+    <div class="column" data-col="done">
+      <div class="column-header">
+        <h2>
+          <span class="col-dot" style="background:var(--col-done)"></span>
+          Done
+        </h2>
+        <span class="col-count" id="count-done">0</span>
+      </div>
+      <div class="column-body" id="col-done" data-col="done"
+           ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave(event)">
+      </div>
+      <button class="add-card-btn" onclick="showAddForm('done')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Adicionar card
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Overlay -->
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+
+<!-- Card Detail Panel -->
+<div class="detail-panel" id="detailPanel">
+  <div class="panel-header">
+    <h2>Detalhes do Card</h2>
+    <button class="panel-close" onclick="closePanel()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+  <div class="panel-body">
+
+    <div class="panel-field">
+      <div class="field-label">Título</div>
+      <textarea class="panel-input card-title-input" id="panelTitle" rows="2"
+        placeholder="Descreva a tarefa…" oninput="autoResize(this)"></textarea>
+    </div>
+
+    <div class="panel-field">
+      <div class="field-label">Descrição</div>
+      <textarea class="panel-input" id="panelDesc" rows="3"
+        placeholder="Detalhes adicionais…" oninput="autoResize(this)"></textarea>
+    </div>
+
+    <div class="panel-field">
+      <div class="field-label">Agente</div>
+      <select class="panel-select" id="panelAgent">
+        <option value="">Nenhum agente</option>
+        <option value="analyst">Analyst — Pesquisa e análise de dados</option>
+        <option value="coder">Coder — Desenvolvimento de código</option>
+        <option value="reviewer">Reviewer — Revisão e validação</option>
+      </select>
+    </div>
+
+    <div class="panel-field">
+      <div class="field-label">Status</div>
+      <div class="status-row">
+        <div class="status-pill" id="panelStatusPill">
+          <span class="col-dot" id="panelColDot" style="background:var(--col-backlog)"></span>
+          <span id="panelStatusText">Backlog</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-field">
+      <div class="field-label">Subtarefas</div>
+      <div id="subtasksList"></div>
+      <button class="btn-ghost" onclick="addSubtask()" style="margin-top:8px;width:100%;justify-content:center;font-size:12.5px;padding:7px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Adicionar subtarefa
+      </button>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn-primary" onclick="saveCard()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+        </svg>
+        Salvar
+      </button>
+      <button class="btn-ghost" id="btnDeleteCard" onclick="deleteCard()" style="border-color:#FCA5A5;color:#DC2626;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+        </svg>
+        Excluir
+      </button>
+    </div>
+
+    <div style="height:1px;background:var(--border)"></div>
+
+    <div class="comments-section">
+      <div class="field-label">Comentários</div>
+      <div id="commentsList">
+        <div style="font-size:12.5px;color:var(--muted);padding:8px 0;text-align:center">
+          Nenhum comentário ainda. O agente pode enviar dúvidas aqui.
+        </div>
+      </div>
+      <div class="comment-input-row">
+        <textarea class="panel-input" id="commentInput" rows="1" placeholder="Responder ao agente…"
+          oninput="autoResize(this)" style="min-height:36px"></textarea>
+        <button class="comment-send" onclick="addComment()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const COLORS = {
+  backlog:    { color: 'var(--col-backlog)',    label: 'Backlog' },
+  refinement: { color: 'var(--col-refinement)', label: 'Refinement' },
+  development:{ color: 'var(--col-development)',label: 'Development' },
+  review:     { color: 'var(--col-review)',     label: 'Review' },
+  done:       { color: 'var(--col-done)',        label: 'Done' }
+};
+
+let cards = [
+  { id: 1, title: 'Analisar logs de erro do servidor de produção', col: 'backlog', agent: 'analyst', subtasks: [{text:'Revisar logs de ayer',done:true},{text:'Identificar padrão de erros',done:false}], comments: [{author:'agent',text:'Quais logs específicos você precisa?','time':'09:12'}] },
+  { id: 2, title: 'Criar dashboard de métricas de uso do produto', col: 'backlog', agent: 'analyst', subtasks: [], comments: [] },
+  { id: 3, title: 'Revisar estrutura de dados do novo módulo de billing', col: 'refinement', agent: 'reviewer', subtasks: [{text:'Mapear entidades principais',done:true},{text:'Validar relacionamentos',done:false}], comments: [] },
+  { id: 4, title: 'Implementar autenticação via OAuth no backend', col: 'development', agent: 'coder', subtasks: [], comments: [{author:'user',text:'Pode usar a biblioteca passport.js.','time':'10:30'}] },
+  { id: 5, title: 'Testar integração com API de pagamentos Stripe', col: 'review', agent: 'reviewer', subtasks: [], comments: [] },
+  { id: 6, title: 'Documentar endpoints da API de autenticação', col: 'done', agent: 'analyst', subtasks: [], comments: [] },
+  { id: 7, title: 'Atualizar dependências do projeto para últimas versões estáveis', col: 'backlog', agent: '', subtasks: [], comments: [] },
+  { id: 8, title: 'Configurar pipeline de CI/CD para branch principal', col: 'development', agent: 'coder', subtasks: [{text:'Criar arquivo .gitlab-ci.yml',done:false}], comments: [] },
+];
+
+let currentCardId = null;
+let draggedCardId = null;
+
+function render() {
+  Object.keys(COLORS).forEach(col => {
+    const el = document.getElementById('col-' + col);
+    const colCards = cards.filter(c => c.col === col);
+    el.innerHTML = colCards.map(card => renderCard(card)).join('');
+    document.getElementById('count-' + col).textContent = colCards.length;
+  });
+}
+
+function renderCard(card) {
+  const agentNames = { analyst:'AN', coder:'CO', reviewer:'RE', '':'' };
+  const agentColors = { analyst:'#2383E2', coder:'#7C3AED', reviewer:'#D97706' };
+  const agentLabels = { analyst:'Analyst', coder:'Coder', reviewer:'Reviewer' };
+  const dotColor = COLORS[card.col].color;
+  const hasComments = card.comments.length > 0;
+  const subtasksDone = card.subtasks ? card.subtasks.filter(s=>s.done).length : 0;
+  const subtasksTotal = card.subtasks ? card.subtasks.length : 0;
+  const hasSubtasks = subtasksTotal > 0;
+
+  return `<div class="card" draggable="true" data-id="${card.id}"
+    ondragstart="onDragStart(event)" ondragend="onDragEnd(event)"
+    onclick="openCard(${card.id})">
+    <button class="card-delete" onclick="event.stopPropagation();deleteCardById(${card.id})">×</button>
+    <div class="card-header">
+      <div class="card-title">${escHtml(card.title)}</div>
+      <span class="card-status-dot" style="background:${dotColor}"></span>
+    </div>
+    ${card.agent ? `<div class="card-meta">
+      <span class="agent-badge">
+        <span class="agent-avatar" style="background:${agentColors[card.agent]}">${agentNames[card.agent]}</span>
+        ${agentLabels[card.agent]}
+      </span>
+      <span class="status-pill" style="font-size:11px;padding:3px 8px;border-radius:20px;background:var(--bg);border:1px solid var(--border);">${COLORS[card.col].label}</span>
+    </div>` : ''}
+    ${hasSubtasks ? `<div class="subtasks-indicator">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+      </svg>
+      ${subtasksDone}/${subtasksTotal} subtarefas
+    </div>` : ''}
+    ${hasComments ? `<div class="subtasks-indicator">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+      </svg>
+      ${card.comments.length} comentário${card.comments.length!==1?'s':''}
+    </div>` : ''}
+  </div>`;
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function onDragStart(e) {
+  draggedCardId = +e.currentTarget.dataset.id;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  draggedCardId = null;
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const targetCol = e.currentTarget.dataset.col;
+  if (draggedCardId !== null) {
+    const card = cards.find(c => c.id === draggedCardId);
+    if (card) {
+      card.col = targetCol;
+      render();
+      saveLocal();
+    }
+  }
+}
+
+function showAddForm(col) {
+  const el = document.getElementById('col-' + col);
+  el.insertAdjacentHTML('beforeend', `<div class="inline-add-form" id="addform-${col}">
+    <textarea class="inline-add-input" id="addinput-${col}" rows="2" placeholder="Título da tarefa…"></textarea>
+    <div class="inline-add-actions">
+      <button class="btn-add-confirm" onclick="confirmAdd('${col}')">Adicionar</button>
+      <button class="btn-add-cancel" onclick="cancelAdd('${col}')">Cancelar</button>
+    </div>
+  </div>`);
+  document.getElementById('addinput-' + col).focus();
+}
+
+function confirmAdd(col) {
+  const input = document.getElementById('addinput-' + col);
+  const title = input.value.trim();
+  if (!title) return;
+  const id = Date.now();
+  cards.push({ id, title, col, agent: '', subtasks: [], comments: [] });
+  cancelAdd(col);
+  render();
+  saveLocal();
+}
+
+function cancelAdd(col) {
+  const f = document.getElementById('addform-' + col);
+  if (f) f.remove();
+}
+
+function openAddCard() {
+  showAddForm('backlog');
+}
+
+function openCard(id) {
+  currentCardId = id;
+  const card = cards.find(c => c.id === id);
+  if (!card) return;
+
+  document.getElementById('panelTitle').value = card.title;
+  document.getElementById('panelDesc').value = card.desc || '';
+  document.getElementById('panelAgent').value = card.agent;
+  updateStatusPill(card.col);
+  renderComments(card.comments);
+  renderSubtasks(card.subtasks || []);
+
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('detailPanel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('detailPanel').classList.remove('open');
+  currentCardId = null;
+}
+
+function updateStatusPill(col) {
+  const info = COLORS[col];
+  document.getElementById('panelColDot').style.background = info.color;
+  document.getElementById('panelStatusText').textContent = info.label;
+}
+
+function renderSubtasks(subtasks) {
+  const el = document.getElementById('subtasksList');
+  if (!subtasks || subtasks.length === 0) {
+    el.innerHTML = '<div style="font-size:12.5px;color:var(--muted);padding:4px 0">Nenhuma subtarefa ainda.</div>';
+    return;
+  }
+  el.innerHTML = subtasks.map((s, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
+      <input type="checkbox" ${s.done?'checked':''} onchange="toggleSubtask(${i})"
+        style="width:15px;height:15px;cursor:pointer;border-radius:4px">
+      <span style="flex:1;font-size:13px;color:${s.done?'var(--muted)':'var(--fg)'};text-decoration:${s.done?'line-through':'none'};transition:all 0.15s">${escHtml(s.text)}</span>
+      <button onclick="removeSubtask(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px">×</button>
+    </div>
+  `).join('');
+}
+
+function toggleSubtask(i) {
+  const card = cards.find(c => c.id === currentCardId);
+  if (!card || !card.subtasks) return;
+  card.subtasks[i].done = !card.subtasks[i].done;
+  renderSubtasks(card.subtasks);
+  render();
+  saveLocal();
+}
+
+function removeSubtask(i) {
+  const card = cards.find(c => c.id === currentCardId);
+  if (!card || !card.subtasks) return;
+  card.subtasks.splice(i, 1);
+  renderSubtasks(card.subtasks);
+  render();
+  saveLocal();
+}
+
+function addSubtask() {
+  const card = cards.find(c => c.id === currentCardId);
+  if (!card) return;
+  if (!card.subtasks) card.subtasks = [];
+  const text = prompt('Descrição da subtarefa:');
+  if (text && text.trim()) {
+    card.subtasks.push({ text: text.trim(), done: false });
+    renderSubtasks(card.subtasks);
+    render();
+    saveLocal();
+  }
+}
+
+function renderComments(comments) {
+  const el = document.getElementById('commentsList');
+  if (!comments || comments.length === 0) {
+    el.innerHTML = '<div style="font-size:12.5px;color:var(--muted);padding:8px 0;text-align:center">Nenhum comentário ainda.</div>';
+    return;
+  }
+  el.innerHTML = comments.map(c => {
+    const avatarLabel = c.author === 'agent' ? 'RE' : 'EU';
+    const avatarClass = c.author === 'agent' ? 'agent' : '';
+    const authorName = c.author === 'agent' ? 'Agente' : 'Você';
+    return `<div class="comment-item">
+      <div class="comment-avatar ${avatarClass}">${avatarLabel}</div>
+      <div class="comment-body">
+        <div class="comment-meta">
+          <span class="comment-author">${authorName}</span>
+          <span class="comment-time">${c.time || ''}</span>
+        </div>
+        <div class="comment-text">${escHtml(c.text)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addComment() {
+  const input = document.getElementById('commentInput');
+  const text = input.value.trim();
+  if (!text || !currentCardId) return;
+  const card = cards.find(c => c.id === currentCardId);
+  if (!card) return;
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+  card.comments.push({ author: 'user', text, time: timeStr });
+  renderComments(card.comments);
+  input.value = '';
+  render();
+  saveLocal();
+}
+
+function saveCard() {
+  if (!currentCardId) return;
+  const card = cards.find(c => c.id === currentCardId);
+  if (!card) return;
+  card.title = document.getElementById('panelTitle').value.trim() || card.title;
+  card.desc = document.getElementById('panelDesc').value.trim();
+  card.agent = document.getElementById('panelAgent').value;
+  render();
+  saveLocal();
+  closePanel();
+}
+
+function deleteCard() {
+  if (!currentCardId) return;
+  cards = cards.filter(c => c.id !== currentCardId);
+  closePanel();
+  render();
+  saveLocal();
+}
+
+function deleteCardById(id) {
+  cards = cards.filter(c => c.id !== id);
+  render();
+  saveLocal();
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+function saveLocal() {
+  try { localStorage.setItem('agentboard-cards', JSON.stringify(cards)); } catch(e) {}
+}
+
+function loadLocal() {
+  try {
+    const s = localStorage.getItem('agentboard-cards');
+    if (s) cards = JSON.parse(s);
+  } catch(e) {}
+}
+
+loadLocal();
+render();
+</script>
+
+</body>
+</html>

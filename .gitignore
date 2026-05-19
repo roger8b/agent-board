@@ -1,0 +1,9 @@
+node_modules
+.next
+src/generated
+.env
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+.playwright-mcp
+*.png

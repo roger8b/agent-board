@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configurações — Agent Board</title>
+<style>
+:root {
+  --bg:      #F7F6F3;
+  --surface: #FFFFFF;
+  --fg:      #37352F;
+  --muted:   #9B9A97;
+  --border:  #E9E9E7;
+  --accent:  #2383E2;
+  --accent-soft: #E9F0FB;
+  --danger:  #DC2626;
+  --danger-soft: #FEE2E2;
+
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+  display: flex;
+}
+
+/* ── Sidebar ─────────────────────────────── */
+.sidebar {
+  width: 220px;
+  min-height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-logo span {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 450;
+  transition: background 0.12s, color 0.12s;
+}
+
+.nav-item:hover { background: var(--bg); color: var(--fg); }
+.nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+
+.sidebar-footer {
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-footer p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ── Main ────────────────────────────────── */
+.main {
+  margin-left: 220px;
+  flex: 1;
+  padding: 40px 48px;
+  max-width: 720px;
+}
+
+.page-header {
+  margin-bottom: 36px;
+}
+
+.page-header h1 {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+.page-header p {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* ── Section ─────────────────────────────── */
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 4px;
+}
+
+.section-desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.field-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.field-group {
+  margin-bottom: 16px;
+}
+
+.field-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 13.5px;
+  font-family: var(--font-body);
+  color: var(--fg);
+  transition: border-color 0.12s;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+/* ── Column config list ──────────────────── */
+.col-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.col-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.col-item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.col-item-name {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.col-item-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-size: 13.5px;
+  font-family: var(--font-body);
+  color: var(--fg);
+  padding: 2px 4px;
+}
+
+.col-item-input:focus {
+  outline: none;
+  background: var(--surface);
+  border-radius: 4px;
+}
+
+.col-item-delete {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  font-size: 14px;
+  transition: background 0.12s, color 0.12s;
+}
+
+.col-item:hover .col-item-delete { color: var(--muted); }
+.col-item-delete:hover { background: var(--danger-soft); color: var(--danger); }
+
+.add-col-btn {
+  width: 100%;
+  padding: 9px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.12s, color 0.12s;
+  margin-top: 4px;
+}
+
+.add-col-btn:hover {
+  background: var(--surface);
+  color: var(--fg);
+  border-color: #d5d5d3;
+}
+
+/* ── Save feedback ────────────────────────── */
+.save-msg {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--fg);
+  color: white;
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+  transform: translateY(80px);
+  opacity: 0;
+  transition: transform 0.25s, opacity 0.25s;
+  z-index: 100;
+}
+
+.save-msg.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* ── Danger zone ─────────────────────────── */
+.danger-zone {
+  border: 1px solid #FCA5A5;
+  background: #FFF5F5;
+}
+
+.danger-zone .section-title { color: var(--danger); }
+
+.danger-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--danger);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: opacity 0.12s;
+}
+
+.danger-btn:hover { opacity: 0.88; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="6" fill="#2383E2"/>
+      <path d="M7 8h4v8H7zM13 8h4v4h-4z" fill="white"/>
+      <path d="M13 14h4v2h-4z" fill="white" opacity="0.6"/>
+    </svg>
+    <span>Agent Board</span>
+  </div>
+  <div class="sidebar-nav">
+    <a href="index.html" class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+      </svg>
+      Início
+    </a>
+    <a href="board.html" class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="5" height="18" rx="1"/>
+        <rect x="10" y="3" width="5" height="12" rx="1"/>
+        <rect x="17" y="3" width="5" height="15" rx="1"/>
+      </svg>
+      Quadro
+    </a>
+    <a href="agents.html" class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="9" cy="8" r="4"/><path d="M3 20c0-3.3 2.7-6 6-6"/>
+        <circle cx="17" cy="7" r="3"/><path d="M15 14c.8 1.8 2.5 3 4.5 3"/>
+      </svg>
+      Agentes
+    </a>
+    <a href="settings.html" class="nav-item active">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41"/>
+      </svg>
+      Configurações
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <p>Agent Board v1.0<br>Dados armazenados localmente</p>
+  </div>
+</nav>
+
+<!-- Main -->
+<div class="main">
+  <div class="page-header">
+    <h1>Configurações</h1>
+    <p>Personalize colunas, comportamento e preferências do Agent Board.</p>
+  </div>
+
+  <!-- Columns Config -->
+  <div class="section">
+    <div class="section-title">Colunas do Quadro</div>
+    <div class="section-desc">Edite o nome das colunas. Clique na linha para renomear. Dados persistidos localmente.</div>
+
+    <div class="col-list" id="colList"></div>
+
+    <button class="add-col-btn" onclick="addColumn()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+      Adicionar coluna
+    </button>
+  </div>
+
+  <!-- Agent Behavior per Stage -->
+  <div class="section">
+    <div class="section-title">Comportamento do Agente por Etapa</div>
+    <div class="section-desc">Quando um card entra em uma coluna, o agente atribuído recebe automaticamente instruções específicas daquela etapa.</div>
+
+    <div class="field-group">
+      <label class="field-label">Refinement — instrução padrão</label>
+      <input class="field-input" id="cfg-refinement" placeholder="Ex: Faça perguntas ao usuário para clarificar escopo e contexto antes de prosseguir." />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Development — instrução padrão</label>
+      <input class="field-input" id="cfg-development" placeholder="Ex: Execute a tarefa. Divida em subtarefas se necessário. Reporte progresso a cada passo." />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Review — instrução padrão</label>
+      <input class="field-input" id="cfg-review" placeholder="Ex: Revise o resultado. Valide completude e qualidade. Solicite correções se necessário." />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Done — instrução padrão</label>
+      <input class="field-input" id="cfg-done" placeholder="Ex: Informe ao usuário que a tarefa foi concluída. Anexe resumo do que foi feito." />
+    </div>
+  </div>
+
+  <!-- Data -->
+  <div class="section">
+    <div class="section-title">Dados Locais</div>
+    <div class="section-desc">Todos os dados são armazenados exclusivamente no seu computador. Nada é enviado para servidores externos.</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-ghost" onclick="exportData()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Exportar dados
+      </button>
+      <button class="btn-ghost" onclick="importData()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Importar dados
+      </button>
+    </div>
+  </div>
+
+  <!-- Danger Zone -->
+  <div class="section danger-zone">
+    <div class="section-title">Zona de Perigo</div>
+    <div class="section-desc">A exclusão de dados é permanente e não pode ser desfeita.</div>
+    <button class="danger-btn" onclick="clearAllData()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14H6L5 6"/>
+        <path d="M10 11v6M14 11v6"/>
+        <path d="M9 6V4h6v2"/>
+      </svg>
+      Limpar todos os dados
+    </button>
+  </div>
+
+</div>
+
+<!-- Save toast -->
+<div class="save-msg" id="saveMsg">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+  Salvo automaticamente
+</div>
+
+<script>
+const DEFAULT_COLS = [
+  { id: 'backlog',     name: 'Backlog',     color: '#9B9A97' },
+  { id: 'refinement',  name: 'Refinement',  color: '#2383E2' },
+  { id: 'development',name: 'Development',  color: '#7C3AED' },
+  { id: 'review',      name: 'Review',      color: '#D97706' },
+  { id: 'done',        name: 'Done',        color: '#17A34A' },
+];
+
+const COL_COLORS = ['#9B9A97','#2383E2','#7C3AED','#D97706','#17A34A','#DC2626','#0891B2','#4F46E5'];
+
+let columns = DEFAULT_COLS.map(c => ({ ...c }));
+let agentBehaviors = {
+  refinement: '',
+  development: '',
+  review: '',
+  done: ''
+};
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function renderColumns() {
+  const el = document.getElementById('colList');
+  el.innerHTML = columns.map(col => `
+    <div class="col-item">
+      <span class="col-item-dot" style="background:${col.color}"></span>
+      <span class="col-item-name">${escHtml(col.name)}</span>
+      <input class="col-item-input" value="${escHtml(col.name)}"
+        onchange="renameCol('${col.id}', this.value)" />
+      <button class="col-item-delete" onclick="deleteCol('${col.id}')" title="Remover">×</button>
+    </div>
+  `).join('');
+}
+
+function renameCol(id, val) {
+  const col = columns.find(c => c.id === id);
+  if (col) col.name = val.trim() || col.name;
+  saveLocal();
+  showSaveMsg();
+}
+
+function addColumn() {
+  const usedColors = columns.map(c => c.color);
+  const nextColor = COL_COLORS.find(c => !usedColors.includes(c)) || COL_COLORS[0];
+  const id = 'col-' + Date.now();
+  const n = columns.length + 1;
+  columns.push({ id, name: 'Coluna ' + n, color: nextColor });
+  renderColumns();
+  saveLocal();
+  showSaveMsg();
+}
+
+function deleteCol(id) {
+  if (columns.length <= 1) return;
+  if (!confirm('Remover esta coluna?')) return;
+  columns = columns.filter(c => c.id !== id);
+  renderColumns();
+  saveLocal();
+  showSaveMsg();
+}
+
+function showSaveMsg() {
+  const el = document.getElementById('saveMsg');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+function exportData() {
+  const data = { columns, behaviors: agentBehaviors, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'agentboard-config.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = () => {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (data.columns) columns = data.columns;
+        if (data.behaviors) agentBehaviors = data.behaviors;
+        renderColumns();
+        loadBehaviors();
+        saveLocal();
+        showSaveMsg();
+      } catch(err) {
+        alert('Arquivo inválido: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function loadBehaviors() {
+  try {
+    const s = localStorage.getItem('agentboard-behaviors');
+    if (s) agentBehaviors = JSON.parse(s);
+  } catch(e) {}
+  ['refinement','development','review','done'].forEach(key => {
+    const el = document.getElementById('cfg-' + key);
+    if (el) el.value = agentBehaviors[key] || '';
+  });
+}
+
+function saveBehaviors() {
+  ['refinement','development','review','done'].forEach(key => {
+    const el = document.getElementById('cfg-' + key);
+    if (el) agentBehaviors[key] = el.value;
+  });
+  saveLocal();
+  showSaveMsg();
+}
+
+function clearAllData() {
+  if (!confirm('Tem certeza? Todos os cards, agentes e configurações serão excluídos permanentemente.')) return;
+  localStorage.clear();
+  columns = DEFAULT_COLS.map(c => ({ ...c }));
+  renderColumns();
+  loadBehaviors();
+  showSaveMsg();
+}
+
+function saveLocal() {
+  try {
+    localStorage.setItem('agentboard-columns', JSON.stringify(columns));
+    localStorage.setItem('agentboard-behaviors', JSON.stringify(agentBehaviors));
+  } catch(e) {}
+}
+
+function loadLocal() {
+  try {
+    const s = localStorage.getItem('agentboard-columns');
+    if (s) columns = JSON.parse(s);
+  } catch(e) {}
+}
+
+loadLocal();
+renderColumns();
+loadBehaviors();
+
+// Auto-save behaviors on change
+['refinement','development','review','done'].forEach(key => {
+  const el = document.getElementById('cfg-' + key);
+  if (el) el.addEventListener('change', saveBehaviors);
+});
+</script>
+
+</body>
+</html>

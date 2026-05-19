@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Board {
+  id        String   @id
+  name      String
+  prefix    String   @unique
+  counter   Int      @default(1)
+  columns   Column[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Column {
+  id      String  @id
+  boardId String
+  board   Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  name    String
+  slug    String
+  color   String
+  order   Int
+  tasks   Task[]
+
+  @@unique([boardId, slug])
+  @@index([boardId])
+}
+
+model Task {
+  id          String    @id
+  columnId    String
+  column      Column    @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  agent       String?
+  order       Int
+  subtasks    SubTask[]
+  comments    Comment[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([columnId])
+}
+
+model SubTask {
+  id          String  @id
+  taskId      String
+  task        Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  status      String  @default("")
+  done        Boolean @default(false)
+  order       Int
+
+  @@index([taskId])
+}
+
+model Comment {
+  id        String   @id
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author    String
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+}

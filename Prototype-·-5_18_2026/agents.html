@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentes — Agent Board</title>
+<style>
+:root {
+  --bg:      #F7F6F3;
+  --surface: #FFFFFF;
+  --fg:      #37352F;
+  --muted:   #9B9A97;
+  --border:  #E9E9E7;
+  --accent:  #2383E2;
+  --accent-soft: #E9F0FB;
+  --danger:  #DC2626;
+  --danger-soft: #FEE2E2;
+  --success: #17A34A;
+
+  --font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-body:    -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+  display: flex;
+}
+
+/* ── Sidebar ─────────────────────────────── */
+.sidebar {
+  width: 220px;
+  min-height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 20;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-logo span {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 450;
+  transition: background 0.12s, color 0.12s;
+}
+
+.nav-item:hover { background: var(--bg); color: var(--fg); }
+.nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+
+.sidebar-footer {
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-footer p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ── Main ────────────────────────────────── */
+.main {
+  margin-left: 220px;
+  flex: 1;
+  padding: 40px 48px;
+  min-height: 100vh;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.page-header h1 {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  margin-bottom: 6px;
+}
+
+.page-header p {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: opacity 0.12s;
+}
+
+.btn-primary:hover { opacity: 0.88; }
+
+/* ── Agent grid ──────────────────────────── */
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.agent-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.agent-card:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: #d5d5d3;
+}
+
+.agent-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.agent-avatar-lg {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: white;
+}
+
+.agent-card-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 14px;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.icon-btn:hover { background: var(--bg); color: var(--fg); }
+.icon-btn.danger:hover { background: var(--danger-soft); color: var(--danger); border-color: #FCA5A5; }
+
+.agent-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+}
+
+.agent-card p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.agent-colors {
+  display: flex;
+  gap: 6px;
+}
+
+.color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.agent-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.agent-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--success);
+  font-weight: 500;
+}
+
+.agent-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.agent-status.inactive { color: var(--muted); }
+.agent-status.inactive::before { background: var(--muted); }
+
+/* ── Empty state ─────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  color: var(--muted);
+  text-align: center;
+  gap: 12px;
+}
+
+.empty-state p { font-size: 14px; }
+
+/* ── Modal ──────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.25);
+  z-index: 30;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.overlay.open { opacity: 1; pointer-events: all; }
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  width: 500px;
+  max-width: calc(100vw - 48px);
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal.open {
+  opacity: 1;
+  pointer-events: all;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.modal-close {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: background 0.12s;
+}
+
+.modal-close:hover { background: var(--bg); color: var(--fg); }
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.field-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: var(--font-body);
+  color: var(--fg);
+  transition: border-color 0.12s;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.field-textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13.5px;
+  font-family: var(--font-body);
+  color: var(--fg);
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.55;
+  transition: border-color 0.12s;
+}
+
+.field-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.color-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.color-option {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s;
+}
+
+.color-option:hover { transform: scale(1.1); }
+.color-option.selected { border-color: var(--fg); }
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 450;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.12s, color 0.12s;
+}
+
+.btn-secondary:hover { background: var(--bg); color: var(--fg); }
+
+.btn-danger {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--danger);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: opacity 0.12s;
+}
+
+.btn-danger:hover { opacity: 0.88; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="6" fill="#2383E2"/>
+      <path d="M7 8h4v8H7zM13 8h4v4h-4z" fill="white"/>
+      <path d="M13 14h4v2h-4z" fill="white" opacity="0.6"/>
+    </svg>
+    <span>Agent Board</span>
+  </div>
+  <div class="sidebar-nav">
+    <a href="index.html" class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+      </svg>
+      Início
+    </a>
+    <a href="board.html" class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="5" height="18" rx="1"/>
+        <rect x="10" y="3" width="5" height="12" rx="1"/>
+        <rect x="17" y="3" width="5" height="15" rx="1"/>
+      </svg>
+      Quadro
+    </a>
+    <a href="agents.html" class="nav-item active">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="9" cy="8" r="4"/><path d="M3 20c0-3.3 2.7-6 6-6"/>
+        <circle cx="17" cy="7" r="3"/><path d="M15 14c.8 1.8 2.5 3 4.5 3"/>
+      </svg>
+      Agentes
+    </a>
+    <a href="settings.html" class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41"/>
+      </svg>
+      Configurações
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <p>Agent Board v1.0<br>Dados armazenados localmente</p>
+  </div>
+</nav>
+
+<!-- Main -->
+<div class="main">
+  <div class="page-header">
+    <div>
+      <h1>Agentes</h1>
+      <p>Crie e gerencie os agentes de IA que executam suas tarefas.</p>
+    </div>
+    <button class="btn-primary" onclick="openCreateModal()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+      Novo Agente
+    </button>
+  </div>
+
+  <div class="agent-grid" id="agentGrid">
+  </div>
+
+  <div class="empty-state" id="emptyState" style="display:none">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="1.5">
+      <circle cx="9" cy="8" r="4"/><path d="M3 20c0-3.3 2.7-6 6-6"/>
+      <circle cx="17" cy="7" r="3"/><path d="M15 14c.8 1.8 2.5 3 4.5 3"/>
+    </svg>
+    <p>Nenhum agente criado ainda. Clique em "Novo Agente" para começar.</p>
+  </div>
+</div>
+
+<!-- Overlay + Modal -->
+<div class="overlay" id="overlay" onclick="closeModal()"></div>
+
+<div class="modal" id="agentModal">
+  <div class="modal-header">
+    <h2 id="modalTitle">Criar Agente</h2>
+    <button class="modal-close" onclick="closeModal()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+  <div class="modal-body">
+    <div class="field-group">
+      <label class="field-label">Nome</label>
+      <input class="field-input" id="agentName" type="text" placeholder="Ex: Analista de Dados" maxlength="60" />
+    </div>
+    <div class="field-group">
+      <label class="field-label">Prompt / Comportamento</label>
+      <textarea class="field-textarea" id="agentPrompt"
+        placeholder="Descreva o papel e o comportamento do agente. Ex: Você é um analista de dados especializado em pesquisa e síntese de informações. Quando receber uma tarefa, analise os dados disponíveis, identifique padrões e apresente结论 em linguagem clara."></textarea>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Cor do agente</label>
+      <div class="color-picker" id="colorPicker">
+        <div class="color-option" data-color="#2383E2" style="background:#2383E2" onclick="selectColor(this)"></div>
+        <div class="color-option" data-color="#7C3AED" style="background:#7C3AED" onclick="selectColor(this)"></div>
+        <div class="color-option" data-color="#D97706" style="background:#D97706" onclick="selectColor(this)"></div>
+        <div class="color-option" data-color="#17A34A" style="background:#17A34A" onclick="selectColor(this)"></div>
+        <div class="color-option" data-color="#DC2626" style="background:#DC2626" onclick="selectColor(this)"></div>
+        <div class="color-option" data-color="#0891B2" style="background:#0891B2" onclick="selectColor(this)"></div>
+        <div class="color-option" data-color="#4F46E5" style="background:#4F46E5" onclick="selectColor(this)"></div>
+        <div class="color-option" data-color="#374151" style="background:#374151" onclick="selectColor(this)"></div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn-secondary" id="btnDeleteAgent" onclick="deleteAgent()" style="margin-right:auto;display:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>
+      </svg>
+      Excluir
+    </button>
+    <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+    <button class="btn-primary" onclick="saveAgent()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/>
+      </svg>
+      Salvar
+    </button>
+  </div>
+</div>
+
+<script>
+const AGENT_COLORS = ['#2383E2','#7C3AED','#D97706','#17A34A','#DC2626','#0891B2','#4F46E5','#374151'];
+
+let agents = [
+  { id: 1, name: 'Analyst',   prompt: 'Especialista em pesquisa e análise de dados. Responde com precisão, estrutura informações em tópicos claros e indica fontes quando aplicável.', color: '#2383E2', active: true },
+  { id: 2, name: 'Coder',     prompt: 'Desenvolvedor de código. Escreve soluções limpas, bem documentadas e seguindo boas práticas. Explica decisões técnicas quando solicitado.', color: '#7C3AED', active: true },
+  { id: 3, name: 'Reviewer',  prompt: 'Revisor e validador. Analisa resultados com olhar crítico, identifica lacunas e sugere melhorias concretas. Não aprueba trabalho incompleto.', color: '#D97706', active: true },
+];
+
+let editingAgentId = null;
+let selectedColor = AGENT_COLORS[0];
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function initials(name) {
+  return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+}
+
+function render() {
+  const grid = document.getElementById('agentGrid');
+  const empty = document.getElementById('emptyState');
+  if (agents.length === 0) {
+    grid.style.display = 'none';
+    empty.style.display = 'flex';
+    return;
+  }
+  grid.style.display = 'grid';
+  empty.style.display = 'none';
+  grid.innerHTML = agents.map(a => `
+    <div class="agent-card">
+      <div class="agent-card-header">
+        <div class="agent-avatar-lg" style="background:${a.color}">${initials(a.name)}</div>
+        <div class="agent-card-actions">
+          <button class="icon-btn" onclick="openEditModal(${a.id})" title="Editar">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button class="icon-btn danger" onclick="confirmDelete(${a.id})" title="Excluir">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14H6L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+              <path d="M9 6V4h6v2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <h3>${escHtml(a.name)}</h3>
+      <p>${escHtml(a.prompt)}</p>
+      <div class="agent-colors">
+        <span class="color-dot" style="background:${a.color}"></span>
+        <span class="color-dot" style="background:${a.color};opacity:0.5"></span>
+        <span class="color-dot" style="background:${a.color};opacity:0.25"></span>
+      </div>
+      <div class="agent-card-footer">
+        <span class="agent-status ${a.active ? '' : 'inactive'}">${a.active ? 'Ativo' : 'Inativo'}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openCreateModal() {
+  editingAgentId = null;
+  document.getElementById('modalTitle').textContent = 'Criar Agente';
+  document.getElementById('agentName').value = '';
+  document.getElementById('agentPrompt').value = '';
+  document.getElementById('btnDeleteAgent').style.display = 'none';
+  selectedColor = AGENT_COLORS[0];
+  document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+  document.querySelector('.color-option[data-color="#2383E2"]').classList.add('selected');
+  openModal();
+}
+
+function openEditModal(id) {
+  editingAgentId = id;
+  const a = agents.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('modalTitle').textContent = 'Editar Agente';
+  document.getElementById('agentName').value = a.name;
+  document.getElementById('agentPrompt').value = a.prompt;
+  document.getElementById('btnDeleteAgent').style.display = 'flex';
+  selectedColor = a.color;
+  document.querySelectorAll('.color-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.color === selectedColor);
+  });
+  openModal();
+}
+
+function openModal() {
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('agentModal').classList.add('open');
+  document.getElementById('agentName').focus();
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('agentModal').classList.remove('open');
+  editingAgentId = null;
+}
+
+function selectColor(el) {
+  document.querySelectorAll('.color-option').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedColor = el.dataset.color;
+}
+
+function saveAgent() {
+  const name = document.getElementById('agentName').value.trim();
+  const prompt = document.getElementById('agentPrompt').value.trim();
+  if (!name) {
+    document.getElementById('agentName').focus();
+    return;
+  }
+  if (editingAgentId) {
+    const a = agents.find(x => x.id === editingAgentId);
+    if (a) { a.name = name; a.prompt = prompt; a.color = selectedColor; }
+  } else {
+    agents.push({ id: Date.now(), name, prompt, color: selectedColor, active: true });
+  }
+  render();
+  saveLocal();
+  closeModal();
+}
+
+function confirmDelete(id) {
+  if (!confirm('Excluir este agente?')) return;
+  agents = agents.filter(x => x.id !== id);
+  render();
+  saveLocal();
+}
+
+function deleteAgent() {
+  if (editingAgentId) {
+    agents = agents.filter(x => x.id !== editingAgentId);
+    render();
+    saveLocal();
+    closeModal();
+  }
+}
+
+function saveLocal() {
+  try { localStorage.setItem('agentboard-agents', JSON.stringify(agents)); } catch(e) {}
+}
+
+function loadLocal() {
+  try {
+    const s = localStorage.getItem('agentboard-agents');
+    if (s) agents = JSON.parse(s);
+  } catch(e) {}
+}
+
+loadLocal();
+render();
+</script>
+
+</body>
+</html>

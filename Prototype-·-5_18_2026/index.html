@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Board</title>
+<style>
+:root {
+  --bg:      #FAFAFA;
+  --surface: #FFFFFF;
+  --fg:      #111111;
+  --muted:   #6B6B6B;
+  --border:  #E5E5E5;
+  --accent:  #2F6FEB;
+  --accent-soft: #EBF2FF;
+  --danger:  #DC2626;
+  --success: #17A34A;
+  --warn:    #EAB308;
+
+  --font-display: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-body:    -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono:    ui-monospace, 'JetBrains Mono', monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+  display: flex;
+}
+
+/* ── Sidebar ─────────────────────────────── */
+.sidebar {
+  width: 220px;
+  min-height: 100vh;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-logo svg { flex-shrink: 0; }
+
+.sidebar-logo span {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 450;
+  transition: background 0.12s, color 0.12s;
+}
+
+.nav-item:hover { background: var(--bg); color: var(--fg); }
+.nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.nav-item.active svg { color: var(--accent); }
+
+.nav-item svg { flex-shrink: 0; opacity: 0.7; }
+
+.sidebar-footer {
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-footer p {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ── Main content ────────────────────────── */
+.main {
+  margin-left: 220px;
+  flex: 1;
+  padding: 40px 48px;
+  min-height: 100vh;
+}
+
+.page-header {
+  margin-bottom: 32px;
+}
+
+.page-header h1 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  margin-bottom: 6px;
+}
+
+.page-header p {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* ── Screen cards ────────────────────────── */
+.screen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.screen-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+  cursor: pointer;
+}
+
+.screen-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: #d0d0d0;
+  transform: translateY(-1px);
+}
+
+.screen-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+
+.screen-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+}
+
+.screen-card p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.screen-card-arrow {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 500;
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="6" fill="var(--accent)"/>
+      <path d="M7 8h4v8H7zM13 8h4v4h-4z" fill="white"/>
+      <path d="M13 14h4v2h-4z" fill="white" opacity="0.6"/>
+    </svg>
+    <span>Agent Board</span>
+  </div>
+  <div class="sidebar-nav">
+    <a href="index.html" class="nav-item active">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+      </svg>
+      Início
+    </a>
+    <a href="board.html" class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="5" height="18" rx="1"/>
+        <rect x="10" y="3" width="5" height="12" rx="1"/>
+        <rect x="17" y="3" width="5" height="15" rx="1"/>
+      </svg>
+      Quadro
+    </a>
+    <a href="agents.html" class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="9" cy="8" r="4"/><path d="M3 20c0-3.3 2.7-6 6-6"/>
+        <circle cx="17" cy="7" r="3"/><path d="M15 14c.8 1.8 2.5 3 4.5 3"/>
+      </svg>
+      Agentes
+    </a>
+    <a href="settings.html" class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41"/>
+      </svg>
+      Configurações
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <p>Agent Board v1.0<br>Dados armazenados localmente</p>
+  </div>
+</nav>
+
+<!-- Main -->
+<main class="main">
+  <div class="page-header">
+    <h1>Bem-vindo ao Agent Board</h1>
+    <p>Gerencie tarefas delegando para agentes de IA — simples, visual e local.</p>
+  </div>
+
+  <div class="screen-grid">
+    <a href="board.html" class="screen-card">
+      <div class="screen-card-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="5" height="18" rx="1"/>
+          <rect x="10" y="3" width="5" height="12" rx="1"/>
+          <rect x="17" y="3" width="5" height="15" rx="1"/>
+        </svg>
+      </div>
+      <h3>Quadro Kanban</h3>
+      <p>Suas tarefas em colunas. Arraste cards entre etapas, atribua agentes e acompanhe o progresso.</p>
+      <div class="screen-card-arrow">
+        Abrir quadro
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </div>
+    </a>
+
+    <a href="agents.html" class="screen-card">
+      <div class="screen-card-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="9" cy="8" r="4"/><path d="M3 20c0-3.3 2.7-6 6-6"/>
+          <circle cx="17" cy="7" r="3"/><path d="M15 14c.8 1.8 2.5 3 4.5 3"/>
+        </svg>
+      </div>
+      <h3>Agentes</h3>
+      <p>Crie e gerencie os agentes de IA que vão executar suas tarefas. Defina nome e comportamento.</p>
+      <div class="screen-card-arrow">
+        Gerenciar agentes
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </div>
+    </a>
+
+    <a href="settings.html" class="screen-card">
+      <div class="screen-card-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41"/>
+        </svg>
+      </div>
+      <h3>Configurações</h3>
+      <p>Personalize as colunas do quadro, o comportamento dos agentes por etapa e preferências gerais.</p>
+      <div class="screen-card-arrow">
+        Ajustar
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </div>
+    </a>
+  </div>
+</main>
+
+</body>
+</html>
