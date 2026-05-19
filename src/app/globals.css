@@ -300,6 +300,29 @@ a { color: inherit; }
 
 .board-topbar h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
 .topbar-actions { display: flex; align-items: center; gap: 10px; }
+.topbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+.project-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 30px 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+  font-family: var(--font-body);
+  cursor: pointer;
+  appearance: none;
+  max-width: 280px;
+  text-overflow: ellipsis;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239B9A97' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  transition: border-color 0.12s;
+}
+.project-select:hover { border-color: #d0d0d0; }
+.project-select:focus { outline: none; border-color: var(--accent); }
 
 .board-columns {
   display: flex;

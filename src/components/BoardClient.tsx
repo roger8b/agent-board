@@ -14,6 +14,7 @@ import {
   deleteSubTask,
   createComment,
   deleteComment,
+  createBoard,
 } from "@/lib/actions";
 
 const AGENTS: Record<string, { label: string; short: string; color: string }> = {
@@ -27,9 +28,21 @@ function autoResize(el: HTMLTextAreaElement) {
   el.style.height = el.scrollHeight + "px";
 }
 
-export default function BoardClient({ board }: { board: BoardData }) {
+export default function BoardClient({
+  board,
+  boards,
+}: {
+  board: BoardData;
+  boards: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [, startTransition] = useTransition();
+
+  const [showNewProject, setShowNewProject] = useState(false);
+  const [npName, setNpName] = useState("");
+  const [npPrefix, setNpPrefix] = useState("");
+  const [npBusy, setNpBusy] = useState(false);
+  const [npErr, setNpErr] = useState("");
 
   const [addingCol, setAddingCol] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
@@ -70,6 +83,7 @@ export default function BoardClient({ board }: { board: BoardData }) {
       "subtask:created", "subtask:updated", "subtask:deleted",
       "comment:created", "comment:deleted",
       "column:created", "column:updated", "column:deleted",
+      "board:created",
     ];
     let timer: ReturnType<typeof setTimeout> | null = null;
     const onEvent = () => {
@@ -125,7 +139,35 @@ export default function BoardClient({ board }: { board: BoardData }) {
   return (
     <div className="board-wrap">
       <div className="board-topbar">
-        <h1>Quadro Kanban</h1>
+        <div className="topbar-left">
+          <select
+            className="project-select"
+            value={board.id}
+            onChange={(e) => router.push(`/board?b=${encodeURIComponent(e.target.value)}`)}
+            aria-label="Projeto"
+          >
+            {boards.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name} ({b.id})
+              </option>
+            ))}
+          </select>
+          <button
+            className="btn-ghost"
+            onClick={() => {
+              setNpName("");
+              setNpPrefix("");
+              setNpErr("");
+              setShowNewProject(true);
+            }}
+            title="Novo projeto"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Novo projeto
+          </button>
+        </div>
         <div className="topbar-actions">
           <button
             className="btn-ghost"
@@ -276,6 +318,79 @@ export default function BoardClient({ board }: { board: BoardData }) {
             </div>
           </div>
         ))}
+      </div>
+
+      <div
+        className={`overlay${showNewProject ? " open" : ""}`}
+        onClick={() => !npBusy && setShowNewProject(false)}
+      />
+      <div className={`modal${showNewProject ? " open" : ""}`}>
+        <div className="modal-header">
+          <h2>Novo projeto</h2>
+          <button className="modal-close" onClick={() => !npBusy && setShowNewProject(false)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="modal-body">
+          <div className="field-group">
+            <label className="field-label">Nome</label>
+            <input
+              className="field-input"
+              placeholder="Ex: Marketing"
+              value={npName}
+              onChange={(e) => setNpName(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="field-group">
+            <label className="field-label">Prefixo (id das tarefas)</label>
+            <input
+              className="field-input"
+              placeholder="Ex: MKT — vira MKT-001, MKT-002…"
+              value={npPrefix}
+              onChange={(e) => setNpPrefix(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+              maxLength={10}
+            />
+          </div>
+          {npErr && <div style={{ color: "var(--danger)", fontSize: 12.5 }}>{npErr}</div>}
+        </div>
+        <div className="modal-footer">
+          <button className="btn-secondary" onClick={() => !npBusy && setShowNewProject(false)}>
+            Cancelar
+          </button>
+          <button
+            className="btn-primary"
+            disabled={npBusy}
+            onClick={async () => {
+              const name = npName.trim();
+              const prefix = npPrefix.trim();
+              if (!name || !prefix) {
+                setNpErr("Informe nome e prefixo.");
+                return;
+              }
+              setNpBusy(true);
+              setNpErr("");
+              try {
+                const created = await createBoard(name, prefix);
+                if (!created) {
+                  setNpErr("Não foi possível criar (prefixo já existe?).");
+                  setNpBusy(false);
+                  return;
+                }
+                setShowNewProject(false);
+                setNpBusy(false);
+                router.push(`/board?b=${encodeURIComponent(created.id)}`);
+              } catch {
+                setNpErr("Erro ao criar projeto (prefixo já existe?).");
+                setNpBusy(false);
+              }
+            }}
+          >
+            {npBusy ? "Criando…" : "Criar projeto"}
+          </button>
+        </div>
       </div>
 
       <div className={`overlay${openId ? " open" : ""}`} onClick={closePanel} />

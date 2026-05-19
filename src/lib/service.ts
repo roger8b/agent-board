@@ -2,24 +2,36 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { emit } from "@/lib/events";
 
-// ── Jira-style ID allocation (SPEC 3.0) ──────────
-// {PREFIX}-NNN, global sequential counter per board, never reused.
+// ── Jira-style ID allocation ─────────────────────
+// PREFIX is the project. The issue counter numbers tasks + subtasks
+// (1st task → PREFIX-001); columns get their own PREFIX-C{n} ids; the
+// board id is the prefix itself. Counters never reuse a number.
 function sanitizePrefix(raw: string) {
   const p = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (!p) throw new Error("invalid prefix");
   return p.slice(0, 10);
 }
 
-function formatId(prefix: string, n: number) {
+function formatIssueId(prefix: string, n: number) {
   return `${prefix}-${String(n).padStart(3, "0")}`;
 }
 
-async function allocId(boardId: string) {
+// tasks + subtasks share this per-project issue counter
+async function allocIssueId(boardId: string) {
   const b = await prisma.board.update({
     where: { id: boardId },
     data: { counter: { increment: 1 } },
   });
-  return formatId(b.prefix, b.counter);
+  return formatIssueId(b.prefix, b.counter);
+}
+
+// columns are not issues — separate readable counter
+async function allocColumnId(boardId: string) {
+  const b = await prisma.board.update({
+    where: { id: boardId },
+    data: { colCounter: { increment: 1 } },
+  });
+  return `${b.prefix}-C${b.colCounter}`;
 }
 
 async function boardIdForColumn(columnId: string) {
@@ -78,8 +90,21 @@ export async function createBoard(name: string, prefix?: string) {
   if (!n) throw new Error("name required");
   const p = sanitizePrefix(prefix || n);
   const board = await prisma.board.create({
-    data: { id: formatId(p, 1), name: n, prefix: p, counter: 1 },
+    data: { id: p, name: n, prefix: p, counter: 0, colCounter: 0 },
   });
+  const DEFAULT_COLUMNS = [
+    { slug: "backlog", name: "Backlog", color: "#9B9A97" },
+    { slug: "refinement", name: "Refinement", color: "#2383E2" },
+    { slug: "development", name: "Development", color: "#7C3AED" },
+    { slug: "review", name: "Review", color: "#D97706" },
+    { slug: "done", name: "Done", color: "#17A34A" },
+  ];
+  for (let i = 0; i < DEFAULT_COLUMNS.length; i++) {
+    const c = DEFAULT_COLUMNS[i];
+    await prisma.column.create({
+      data: { id: await allocColumnId(p), boardId: p, slug: c.slug, name: c.name, color: c.color, order: i },
+    });
+  }
   emit("board:created", { id: board.id, name: board.name });
   return board;
 }
@@ -93,7 +118,7 @@ export async function createColumn(boardId: string, name: string, color = "#9B9A
   const n = name.trim();
   if (!n) throw new Error("name required");
   const count = await prisma.column.count({ where: { boardId } });
-  const id = await allocId(boardId);
+  const id = await allocColumnId(boardId);
   const col = await prisma.column.create({
     data: { id, boardId, name: n, slug: `col-${Date.now()}`, color, order: count },
   });
@@ -149,7 +174,7 @@ export async function createTask(
   const title = data.title.trim();
   if (!title) throw new Error("title required");
   const count = await prisma.task.count({ where: { columnId } });
-  const id = await allocId(await boardIdForColumn(columnId));
+  const id = await allocIssueId(await boardIdForColumn(columnId));
   const task = await prisma.task.create({
     data: {
       id,
@@ -200,7 +225,7 @@ export async function createSubTask(
   const title = data.title.trim();
   if (!title) throw new Error("title required");
   const count = await prisma.subTask.count({ where: { taskId } });
-  const id = await allocId(await boardIdForTask(taskId));
+  const id = await allocIssueId(await boardIdForTask(taskId));
   const st = await prisma.subTask.create({
     data: {
       id,

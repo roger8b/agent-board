@@ -27,7 +27,7 @@ processes or edit the database to "fix" it.
 
 ## IDs
 
-Every entity has a Jira-style id: `{PREFIX}-NNN` (board `PROJ-001`, column `PROJ-002`, task `PROJ-003`, subtask `PROJ-004`), comments `COMMENT-xxxxxxxx`. Always refer to tasks by id in your messages to the user.
+Jira-style ids: the board id is the project **prefix** (`PROJ`); tasks and subtasks share a per-project issue counter (`PROJ-001`, `PROJ-002`, … — first task is `PROJ-001`); columns are `PROJ-C1`, `PROJ-C2`, …; comments are `COMMENT-xxxxxxxx`. Always refer to tasks by id in your messages to the user.
 
 ## The workflow you follow
 

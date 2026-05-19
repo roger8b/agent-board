@@ -8,13 +8,14 @@ datasource db {
 }
 
 model Board {
-  id        String   @id
-  name      String
-  prefix    String   @unique
-  counter   Int      @default(1)
-  columns   Column[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id // == prefix (e.g. "PROJ")
+  name       String
+  prefix     String   @unique
+  counter    Int      @default(0) // issue counter: tasks + subtasks → PREFIX-001…
+  colCounter Int      @default(0) // column counter → PREFIX-C1…
+  columns    Column[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Column {

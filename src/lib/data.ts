@@ -1,7 +1,15 @@
 import { prisma } from "@/lib/db";
 
-export async function getBoardData() {
+export function listBoardsLite() {
+  return prisma.board.findMany({
+    orderBy: { createdAt: "asc" },
+    select: { id: true, name: true },
+  });
+}
+
+export async function getBoardData(boardId?: string) {
   const board = await prisma.board.findFirst({
+    where: boardId ? { id: boardId } : undefined,
     orderBy: { createdAt: "asc" },
     include: {
       columns: {

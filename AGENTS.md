@@ -33,8 +33,8 @@ install.sh             local-first installer
 ## Architecture rules
 
 - **`service.ts` is the single source of truth for mutations.** Both server actions (`actions.ts`) and REST routes (`app/api/**`) must call `service.ts` — never hit Prisma directly from a route or action. The service is also the only place that emits SSE events; bypassing it means the UI won't update live.
-- **IDs are allocated, never defaulted.** Every Board/Column/Task/SubTask id is `{PREFIX}-NNN` from `allocId(boardId)` (atomic `Board.counter` increment, never reused). Comments are `COMMENT-<8hex>`. No `@default(cuid())` — schema ids are plain `String @id` and the creating service function must supply the id.
-- **Counter integrity.** Anything that creates an entity must go through `allocId`. The seed maintains its own counter and writes the final value back to `Board.counter` so runtime allocation continues the sequence.
+- **IDs are allocated, never defaulted.** Board id = the sanitized **prefix** (`PROJ`). Tasks + subtasks share the per-project **issue counter** via `allocIssueId(boardId)` → `{PREFIX}-NNN` (atomic `Board.counter` increment; 1st task = `PROJ-001`). Columns use `allocColumnId(boardId)` → `{PREFIX}-C{n}` (atomic `Board.colCounter`). Comments are `COMMENT-<8hex>`. No `@default(cuid())` — schema ids are plain `String @id` and the creating service function supplies the id. Numbers are never reused.
+- **Counter integrity.** Every task/subtask create goes through `allocIssueId`, every column through `allocColumnId`. The seed maintains its own `counter`/`colCounter` and writes both back to the Board so runtime allocation continues the sequence. `createBoard` also seeds the 5 default columns.
 - **Real-time contract.** Mutations call `emit("<entity>:<verb>", {...})`. `BoardClient` subscribes via `EventSource` to `/api/events` and debounces a `router.refresh()`. New event types must be added to the `TYPES` list in `BoardClient.tsx`.
 - **DB location is derived, not configured.** `~/.agent-kanban/data.db` via `os.homedir()` in `db.ts` and `prisma.config.ts`. Don't hard-code paths or assume the install dir is writable for data.
 

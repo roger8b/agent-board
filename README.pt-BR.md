@@ -72,17 +72,21 @@ npm run dev   # http://localhost:3000
 
 ## IDs (estilo Jira)
 
-Toda entidade usa id `{PREFIXO}-NNN` com contador global, sem reúso, por board (SPEC §3.0):
+`PREFIXO` é o projeto. Tarefas e subtarefas compartilham um **contador de issue** por projeto — a primeira tarefa é `PROJ-001`. Colunas têm id próprio; o id do board é o próprio prefixo:
 
 ```
-Board:    PROJ-001
-Coluna:   PROJ-002
-Task:     PROJ-003
-SubTask:  PROJ-004
+Board:    PROJ              (= prefixo; o projeto)
+Coluna:   PROJ-C1, PROJ-C2… (colunas do fluxo)
+Task:     PROJ-001          (1ª issue), PROJ-002…
+SubTask:  PROJ-003          (subtarefa consome o contador de issue)
 Comment:  COMMENT-a1b2c3d4
 ```
 
-O card e o painel de detalhe exibem o id para identificação rápida.
+Contadores nunca reutilizam número. O card e o painel exibem o id para identificação rápida.
+
+## Projetos (front-end)
+
+A barra superior do board tem um **seletor de projetos** (dropdown) com todos os projetos; trocar navega para `/board?b=<PREFIXO>`. **Novo projeto** abre um modal (nome + prefixo) que cria o projeto com as 5 colunas padrão e já alterna para ele. Múltiplos projetos são totalmente suportados.
 
 ## CLI
 

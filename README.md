@@ -72,17 +72,21 @@ npm run dev   # http://localhost:3000
 
 ## IDs (Jira style)
 
-Every entity uses a `{PREFIX}-NNN` id with a global, never-reused counter per board (SPEC §3.0):
+`PREFIX` is the project. Tasks and subtasks share a per-project **issue counter** — the first task is `PROJ-001`. Columns get their own readable ids; the board id is the prefix itself:
 
 ```
-Board:   PROJ-001
-Column:  PROJ-002
-Task:    PROJ-003
-SubTask: PROJ-004
+Board:   PROJ              (= prefix; the project)
+Column:  PROJ-C1, PROJ-C2… (workflow columns)
+Task:    PROJ-001          (1st issue), PROJ-002…
+SubTask: PROJ-003          (subtasks share the issue counter)
 Comment: COMMENT-a1b2c3d4
 ```
 
-Card and detail panel show the id for quick identification.
+Counters never reuse a number. Card and detail panel show the id for quick identification.
+
+## Projects (front-end)
+
+The board top-bar has a **project selector** (dropdown) listing every project; switching navigates to `/board?b=<PREFIX>`. **Novo projeto** opens a modal (name + prefix) that creates the project with the 5 default columns and switches to it. Multiple projects are fully supported.
 
 ## CLI
 

@@ -67,6 +67,13 @@ export async function deleteComment(id: string) {
   rv();
 }
 
+export async function createBoard(name: string, prefix?: string) {
+  if (!name.trim()) return null;
+  const board = await svc.createBoard(name, prefix);
+  revalidatePath("/board");
+  return { id: board.id, name: board.name };
+}
+
 export async function createColumn(boardId: string, name: string, color?: string) {
   if (!name.trim()) return;
   await svc.createColumn(boardId, name, color);
